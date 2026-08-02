@@ -5,37 +5,70 @@ def load_shelters(path):
     df = pd.read_csv(path)
     df["緯度"] = pd.to_numeric(df["緯度"], errors="coerce")
     df["経度"] = pd.to_numeric(df["経度"], errors="coerce")
-    df = df.dropna(subset=["施設名"])
-    return df
+    return df.dropna(subset=["施設名"])
 
-def load_hospitals(path):
-    df = pd.read_csv(path)
 
-    # 空文字 → NaN
-    df = df.replace({"緯度": {"": pd.NA}, "経度": {"": pd.NA}})
+def load_hospitals():
+    df_fac = pd.read_csv("data/01-1_hospital_facility_info_20250601.csv", dtype={"ID": str})
+    df_spec = pd.read_csv("data/01-2_hospital_speciality_hours_20250601.csv", dtype={"ID": str})
 
-    # geocode（まず全病院に対して）
-    for i, row in df.iterrows():
-        if pd.isna(row["緯度"]) or pd.isna(row["経度"]):
-            address = row["所在地_連結表記"]
-            lat, lon = geocode_address(address)
-            if lat is not None and lon is not None:
-                df.at[i, "緯度"] = lat
-                df.at[i, "経度"] = lon
+    df = df_fac.merge(df_spec, on="ID", how="left")
 
-    # geocode 成功した行だけ残す
+    # ★ merge 後の列名を統一
+    if "所在地座標（緯度）" in df.columns:
+        df.rename(columns={"所在地座標（緯度）": "緯度"}, inplace=True)
+    if "所在地座標（経度）" in df.columns:
+        df.rename(columns={"所在地座標（経度）": "経度"}, inplace=True)
+
+    # ★ merge による _x / _y を統一
+    if "緯度_x" in df.columns:
+        df["緯度"] = df["緯度_x"]
+    if "経度_x" in df.columns:
+        df["経度"] = df["経度_x"]
+
     df = df.dropna(subset=["緯度", "経度"])
 
-    # 診療科フラグ
-    df["has_obstetrics"] = df["診療科目"].str.contains("産婦|産科|婦人", na=False)
-    df["has_pediatrics"] = df["診療科目"].str.contains("小児", na=False)
-    df["has_emergency"] = df["診療科目"].str.contains("救急|ER|救命", na=False)
+    df["診療科目名"] = df["診療科目名"].astype(str)
+    df["has_obstetrics"] = df["診療科目名"].str.contains("産科|産婦|産婦人科|婦人", na=False)
+    df["has_pediatrics"] = df["診療科目名"].str.contains("^小児", na=False)
+    df["has_emergency"] = df["診療科目名"].str.contains("救急|ER|救命", na=False)
 
-    # 母子対応病院だけに絞る
-    df = df[
+    return df
+
+
+def load_clinics():
+    df_fac = pd.read_csv("data/02-1_clinic_facility_info_20250601.csv", dtype={"ID": str})
+    df_spec = pd.read_csv("data/02-2_clinic_speciality_hours_20250601.csv", dtype={"ID": str})
+
+    df = df_fac.merge(df_spec, on="ID", how="left")
+
+    if "所在地座標（緯度）" in df.columns:
+        df.rename(columns={"所在地座標（緯度）": "緯度"}, inplace=True)
+    if "所在地座標（経度）" in df.columns:
+        df.rename(columns={"所在地座標（経度）": "経度"}, inplace=True)
+
+    if "緯度_x" in df.columns:
+        df["緯度"] = df["緯度_x"]
+    if "経度_x" in df.columns:
+        df["経度"] = df["経度_x"]
+
+    df = df.dropna(subset=["緯度", "経度"])
+
+    df["診療科目名"] = df["診療科目名"].astype(str)
+    df["has_obstetrics"] = df["診療科目名"].str.contains("産科|産婦|産婦人科|婦人", na=False)
+    df["has_pediatrics"] = df["診療科目名"].str.contains("^小児", na=False)
+    df["has_emergency"] = df["診療科目名"].str.contains("救急|ER|救命", na=False)
+
+    return df
+
+
+def load_medical_facilities():
+    hospitals = load_hospitals()
+    clinics = load_clinics()
+    df = pd.concat([hospitals, clinics], ignore_index=True)
+
+    return df[
         (df["has_obstetrics"]) |
         (df["has_pediatrics"]) |
         (df["has_emergency"])
     ].copy()
-
-    return df
