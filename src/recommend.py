@@ -53,7 +53,7 @@ def recommend_shelter(user_lat, user_lon, life_stage):
         nearest_pe, dist_pe = nearest_medical(medical, "has_pediatrics", shelter_lat, shelter_lon)
         nearest_er, dist_er = nearest_medical(medical, "has_emergency", shelter_lat, shelter_lon)
 
-        # ★ 正しいスコア計算（避難所 → 医療機関）
+        # スコア計算（避難所 → 医療機関)
         score = (
             w["user"] * (1 / (row["distance_user"] + 1)) +
             w["ob"]   * (1 / (dist_ob + 1)) +
@@ -63,8 +63,8 @@ def recommend_shelter(user_lat, user_lon, life_stage):
 
         results.append({
             "避難所名": row["避難所名"],
-            "緯度": row["緯度"],
-            "経度": row["経度"],
+            "lat": row["緯度"],
+            "lon": row["経度"],
             "総合スコア": score,
             "ユーザーからの距離": round(row["distance_user"], 1),
             "最寄り産科": nearest_ob,
