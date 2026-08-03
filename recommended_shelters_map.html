@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html>
+<head>
+    
+    <meta http-equiv="content-type" content="text/html; charset=UTF-8" />
+    <script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.3/dist/leaflet.js"></script>
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Leaflet.awesome-markers/2.0.2/leaflet.awesome-markers.js"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.3/dist/leaflet.css"/>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.2/dist/css/bootstrap.min.css"/>
+    <link rel="stylesheet" href="https://netdna.bootstrapcdn.com/bootstrap/3.0.0/css/bootstrap-glyphicons.css"/>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.2.0/css/all.min.css"/>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/Leaflet.awesome-markers/2.0.2/leaflet.awesome-markers.css"/>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/python-visualization/folium/folium/templates/leaflet.awesome.rotate.min.css"/>
+    
+            <meta name="viewport" content="width=device-width,
+                initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+            <style>
+                #map_e27b85600c8e9a749ec690247c65b2d0 {
+                    position: relative;
+                    width: 100.0%;
+                    height: 100.0%;
+                    left: 0.0%;
+                    top: 0.0%;
+                }
+                .leaflet-container { font-size: 1rem; }
+            </style>
+
+            <style>html, body {
+                width: 100%;
+                height: 100%;
+                margin: 0;
+                padding: 0;
+            }
+            </style>
+
+            <style>#map {
+                position:absolute;
+                top:0;
+                bottom:0;
+                right:0;
+                left:0;
+                }
+            </style>
+
+            <script>
+                L_NO_TOUCH = false;
+                L_DISABLE_3D = false;
+            </script>
+
+        
+</head>
+<body>
+    
+    
+            <div class="folium-map" id="map_e27b85600c8e9a749ec690247c65b2d0" ></div>
+        
+</body>
+<script>
+    
+    
+            var map_e27b85600c8e9a749ec690247c65b2d0 = L.map(
+                "map_e27b85600c8e9a749ec690247c65b2d0",
+                {
+                    center: [35.7486, 139.708],
+                    crs: L.CRS.EPSG3857,
+                    ...{
+  "zoom": 15,
+  "zoomControl": true,
+  "preferCanvas": false,
+}
+
+                }
+            );
+
+            
+
+        
+    
+            var tile_layer_f421d9544bc6ee9805f5ca7b8a98923d = L.tileLayer(
+                "https://tile.openstreetmap.org/{z}/{x}/{y}.png",
+                {
+  "minZoom": 0,
+  "maxZoom": 19,
+  "maxNativeZoom": 19,
+  "noWrap": false,
+  "attribution": "\u0026copy; \u003ca href=\"https://www.openstreetmap.org/copyright\"\u003eOpenStreetMap\u003c/a\u003e contributors",
+  "subdomains": "abc",
+  "detectRetina": false,
+  "tms": false,
+  "opacity": 1,
+}
+
+            );
+        
+    
+            tile_layer_f421d9544bc6ee9805f5ca7b8a98923d.addTo(map_e27b85600c8e9a749ec690247c65b2d0);
+        
+    
+            var marker_186e14d3bd03eedf1c13f8e59df5200f = L.marker(
+                [35.7486, 139.708],
+                {
+}
+            ).addTo(map_e27b85600c8e9a749ec690247c65b2d0);
+        
+    
+            var icon_46ac541c4f4c3721ec06492bcfa83912 = L.AwesomeMarkers.icon(
+                {
+  "markerColor": "blue",
+  "iconColor": "white",
+  "icon": "user",
+  "prefix": "glyphicon",
+  "extraClasses": "fa-rotate-0",
+}
+            );
+        
+    
+        var popup_fe4bdc5d1fc52b9a1006f167b7785920 = L.popup({
+  "maxWidth": "100%",
+});
+
+        
+            
+                var html_d10c0e40fee8702c05fc63cd7fab0fc5 = $(`<div id="html_d10c0e40fee8702c05fc63cd7fab0fc5" style="width: 100.0%; height: 100.0%;">あなたの位置</div>`)[0];
+                popup_fe4bdc5d1fc52b9a1006f167b7785920.setContent(html_d10c0e40fee8702c05fc63cd7fab0fc5);
+            
+        
+
+        marker_186e14d3bd03eedf1c13f8e59df5200f.bindPopup(popup_fe4bdc5d1fc52b9a1006f167b7785920)
+        ;
+
+        
+    
+    
+                marker_186e14d3bd03eedf1c13f8e59df5200f.setIcon(icon_46ac541c4f4c3721ec06492bcfa83912);
+            
+    
+            var marker_65559c089eed21f91f436936b3b8f549 = L.marker(
+                [35.748978, 139.710429],
+                {
+}
+            ).addTo(map_e27b85600c8e9a749ec690247c65b2d0);
+        
+    
+            var icon_24e12f2c6e4f7e5692ddb63cb53d1378 = L.AwesomeMarkers.icon(
+                {
+  "markerColor": "red",
+  "iconColor": "white",
+  "icon": "home",
+  "prefix": "glyphicon",
+  "extraClasses": "fa-rotate-0",
+}
+            );
+        
+    
+        var popup_e8bf718d20d4fd19a687d7eb89a20135 = L.popup({
+  "maxWidth": "100%",
+});
+
+        
+            
+                var html_ef18d73d26657839f397ef116422762d = $(`<div id="html_ef18d73d26657839f397ef116422762d" style="width: 100.0%; height: 100.0%;">1位: 板橋第二小学校（スコア: 0.0032）</div>`)[0];
+                popup_e8bf718d20d4fd19a687d7eb89a20135.setContent(html_ef18d73d26657839f397ef116422762d);
+            
+        
+
+        marker_65559c089eed21f91f436936b3b8f549.bindPopup(popup_e8bf718d20d4fd19a687d7eb89a20135)
+        ;
+
+        
+    
+    
+                marker_65559c089eed21f91f436936b3b8f549.setIcon(icon_24e12f2c6e4f7e5692ddb63cb53d1378);
+            
+    
+            var marker_3b25639dcddf52c12dfb2db89ca5eda3 = L.marker(
+                [35.749542, 139.704662],
+                {
+}
+            ).addTo(map_e27b85600c8e9a749ec690247c65b2d0);
+        
+    
+            var icon_e950d0b67ed92ae54e38f6b13db1b225 = L.AwesomeMarkers.icon(
+                {
+  "markerColor": "red",
+  "iconColor": "white",
+  "icon": "home",
+  "prefix": "glyphicon",
+  "extraClasses": "fa-rotate-0",
+}
+            );
+        
+    
+        var popup_e8037709d982c78c3da5ad04afa5e668 = L.popup({
+  "maxWidth": "100%",
+});
+
+        
+            
+                var html_81247c3b50bd651ff61ec69791b81557 = $(`<div id="html_81247c3b50bd651ff61ec69791b81557" style="width: 100.0%; height: 100.0%;">2位: 文化会館（スコア: 0.0025）</div>`)[0];
+                popup_e8037709d982c78c3da5ad04afa5e668.setContent(html_81247c3b50bd651ff61ec69791b81557);
+            
+        
+
+        marker_3b25639dcddf52c12dfb2db89ca5eda3.bindPopup(popup_e8037709d982c78c3da5ad04afa5e668)
+        ;
+
+        
+    
+    
+                marker_3b25639dcddf52c12dfb2db89ca5eda3.setIcon(icon_e950d0b67ed92ae54e38f6b13db1b225);
+            
+    
+            var marker_3bf9780c2864fef1d177d8272cf5de30 = L.marker(
+                [35.750448, 139.704703],
+                {
+}
+            ).addTo(map_e27b85600c8e9a749ec690247c65b2d0);
+        
+    
+            var icon_8b8f9da9714c006f535c62e0e45ab2d2 = L.AwesomeMarkers.icon(
+                {
+  "markerColor": "red",
+  "iconColor": "white",
+  "icon": "home",
+  "prefix": "glyphicon",
+  "extraClasses": "fa-rotate-0",
+}
+            );
+        
+    
+        var popup_0cdf5bccc1a722625748f4ae412aec0c = L.popup({
+  "maxWidth": "100%",
+});
+
+        
+            
+                var html_aa4e3863bb9cf37c9316ee1b1c7f4260 = $(`<div id="html_aa4e3863bb9cf37c9316ee1b1c7f4260" style="width: 100.0%; height: 100.0%;">3位: 板橋第一中学校（スコア: 0.0025）</div>`)[0];
+                popup_0cdf5bccc1a722625748f4ae412aec0c.setContent(html_aa4e3863bb9cf37c9316ee1b1c7f4260);
+            
+        
+
+        marker_3bf9780c2864fef1d177d8272cf5de30.bindPopup(popup_0cdf5bccc1a722625748f4ae412aec0c)
+        ;
+
+        
+    
+    
+                marker_3bf9780c2864fef1d177d8272cf5de30.setIcon(icon_8b8f9da9714c006f535c62e0e45ab2d2);
+            
+</script>
+</html>
