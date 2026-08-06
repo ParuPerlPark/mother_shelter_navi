@@ -36,6 +36,10 @@ export default function MapView() {
       .then((res) => res.json())
       .then((data) => {
         console.log("APIレスポンス:", data);
+        console.log("避難所データ:", data.results);
+        data.results.forEach((r, i) => {
+           console.log(`避難所${i + 1}:`, r.lat, r.lon);
+        });
         setShelters(data.results);
       })
       .catch((err) => console.error("API取得エラー:", err));
@@ -62,11 +66,9 @@ export default function MapView() {
             <br />
             スコア: {s.総合スコア.toFixed(4)}
             <br />
-            産科まで: {s.産科までの距離}m
+            産婦人科:{s.最寄り産科}（{s.産科までの距離}m）
             <br />
-            小児科まで: {s.小児科までの距離}m
-            <br />
-            救急科まで: {s.救急科までの距離}m
+            小児科:{s.最寄り小児科}（{s.小児科までの距離}m）
           </Popup>
         </Marker>
       ))}
