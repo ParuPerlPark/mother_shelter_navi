@@ -1,5 +1,5 @@
-from recommend import recommend_shelter
-from load_data import load_evacuation_sites
+from src.recommend import recommend_shelter
+from src.load_data import load_evacuation_sites
 import folium
 
 # ------------------------------------------------------------
@@ -37,7 +37,7 @@ m = folium.Map(location=[user_lat, user_lon], zoom_start=15)
 folium.Marker(
     location=[user_lat, user_lon],
     popup="あなたの位置",
-    icon=folium.Icon(color="blue", icon="user")
+    icon=folium.Icon(color="red", icon="user")
 ).add_to(m)
 
 # 避難所データ読み込み（緯度・経度取得用）
@@ -50,7 +50,7 @@ for idx, r in enumerate(results, start=1):
     folium.Marker(
         location=[shelter["緯度"], shelter["経度"]],
         popup=f"{idx}位: {r['避難所名']}（スコア: {round(r['総合スコア'], 4)}）",
-        icon=folium.Icon(color="red", icon="home")
+        icon=folium.Icon(color="blue", icon="home")
     ).add_to(m)
 
 # 地図をHTMLとして保存

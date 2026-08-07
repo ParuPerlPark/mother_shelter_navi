@@ -1,3 +1,32 @@
+# Node / React
 node_modules/
+build/
+dist/
+.cache/
+
+# Environment variables
 .env
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+venv/
+env/
+.venv/
+
+# FastAPI / logs
+*.log
+
+# Data files
 data/*.csv
+
+# OS junk
+.DS_Store
+Thumbs.db
+public/.DS_Store
+src/.DS_Store
+
+# IDE
+.vscode/
