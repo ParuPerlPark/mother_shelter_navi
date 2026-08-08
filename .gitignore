@@ -19,8 +19,8 @@ env/
 # FastAPI / logs
 *.log
 
-# Data files
-data/*.csv
+# Data files (exclude ALL CSVs anywhere)
+*.csv
 
 # OS junk
 .DS_Store
