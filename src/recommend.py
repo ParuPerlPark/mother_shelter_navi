@@ -1,78 +1,103 @@
 import pandas as pd
 from src.utils import calc_distance
 from src.load_data import load_medical_facilities, load_evacuation_sites
+import re
+from concurrent.futures import ProcessPoolExecutor, as_completed
+import os
+
+
+def extract_city(address):
+    m = re.search(r"(.*?市|.*?区|.*?町|.*?村)", str(address))
+    return m.group(1) if m else None
+
+
+def process_shelter(row_dict, medical, w):
+    # row_dict は辞書として渡される
+    shelter_lat = row_dict["緯度"]
+    shelter_lon = row_dict["経度"]
+    shelter_city = extract_city(row_dict["所在地住所"])
+
+    # 市区町村で絞る
+    medical_city = medical[medical["市区町村"] == shelter_city].copy()
+    if len(medical_city) == 0:
+        medical_city = medical  # fallback
+
+    # 医療機関距離（apply → list comprehension）
+    medical_city["dist"] = [
+        calc_distance(shelter_lat, shelter_lon, lat, lon)
+        for lat, lon in zip(medical_city["緯度"], medical_city["経度"])
+    ]
+
+    # 最寄り病院
+    def pick(flag):
+        df = medical_city[medical_city[flag]]
+        if len(df) == 0:
+            return None, 99999.0
+        best = df.sort_values("dist").iloc[0]
+        return best["正式名称"], best["dist"]
+
+    nearest_ob, dist_ob = pick("has_obstetrics")
+    nearest_pe, dist_pe = pick("has_pediatrics")
+    nearest_er, dist_er = pick("has_emergency")
+
+    score = (
+        w["user"] * (1 / (row_dict["distance_user"] + 1)) +
+        w["ob"]   * (1 / (dist_ob + 1)) +
+        w["pe"]   * (1 / (dist_pe + 1)) +
+        w["er"]   * (1 / (dist_er + 1))
+    )
+
+    return {
+        "避難所名": row_dict["避難所名"],
+        "lat": row_dict["緯度"],
+        "lon": row_dict["経度"],
+        "総合スコア": score,
+        "ユーザーからの距離": round(row_dict["distance_user"], 1),
+        "最寄り産科": nearest_ob,
+        "産科までの距離": round(dist_ob, 1),
+        "最寄り小児科": nearest_pe,
+        "小児科までの距離": round(dist_pe, 1),
+        "最寄り救急科": nearest_er,
+        "救急科までの距離": round(dist_er, 1),
+    }
 
 
 def recommend_shelter(user_lat, user_lon, life_stage):
-    # データ読み込み
     medical = load_medical_facilities()
     shelters = load_evacuation_sites()
 
-    # ユーザー → 避難所 の距離
-    shelters["distance_user"] = shelters.apply(
-        lambda row: calc_distance(user_lat, user_lon, row["緯度"], row["経度"]),
-        axis=1
-    )
+    # 東京都だけ
+    medical = medical[medical["都道府県コード"].astype(str) == "13"]
+    medical["市区町村"] = medical["所在地"].apply(extract_city)
 
-    # 避難所 → 医療機関 の距離を計算する関数
-    def nearest_medical(df, flag, shelter_lat, shelter_lon):
-        target = df[df[flag]]
-        if len(target) == 0:
-            return None, 99999.0
-        target = target.copy()
-        target["dist"] = target.apply(
-            lambda row: calc_distance(shelter_lat, shelter_lon, row["緯度"], row["経度"]),
-            axis=1
-        )
-        best = target.sort_values("dist").iloc[0]
-        return best["正式名称"], best["dist"]
+    # 避難所距離（apply → list comprehension）
+    shelters["distance_user"] = [
+        calc_distance(user_lat, user_lon, lat, lon)
+        for lat, lon in zip(shelters["緯度"], shelters["経度"])
+    ]
 
-    # ライフステージ別の重み
     weights = {
         "妊娠初期":  {"user": 0.2, "ob": 0.4, "pe": 0.2, "er": 0.2},
         "妊娠中期":  {"user": 0.2, "ob": 0.4, "pe": 0.2, "er": 0.2},
         "妊娠後期":  {"user": 0.3, "ob": 0.5, "pe": 0.1, "er": 0.1},
         "産後":      {"user": 0.2, "ob": 0.2, "pe": 0.4, "er": 0.2},
     }
-
     w = weights.get(life_stage, weights["妊娠初期"])
 
-    # ユーザー距離だけで仮スコアを作り、上位3件を選ぶ
     shelters["score_tmp"] = w["user"] * (1 / (shelters["distance_user"] + 1))
     top3 = shelters.sort_values("score_tmp", ascending=False).head(3)
 
-    # 避難所ごとに医療機関距離を計算してスコアを再計算
+    # 並列数を増やす（CPUコア数 × 2）
+    max_workers = os.cpu_count() * 2
+
+    # 並列処理
     results = []
-    for _, row in top3.iterrows():
-
-        shelter_lat = row["緯度"]
-        shelter_lon = row["経度"]
-
-        # 避難所 → 医療機関 の距離
-        nearest_ob, dist_ob = nearest_medical(medical, "has_obstetrics", shelter_lat, shelter_lon)
-        nearest_pe, dist_pe = nearest_medical(medical, "has_pediatrics", shelter_lat, shelter_lon)
-        nearest_er, dist_er = nearest_medical(medical, "has_emergency", shelter_lat, shelter_lon)
-
-        # スコア計算（避難所 → 医療機関)
-        score = (
-            w["user"] * (1 / (row["distance_user"] + 1)) +
-            w["ob"]   * (1 / (dist_ob + 1)) +
-            w["pe"]   * (1 / (dist_pe + 1)) +
-            w["er"]   * (1 / (dist_er + 1))
-        )
-
-        results.append({
-            "避難所名": row["避難所名"],
-            "lat": row["緯度"],
-            "lon": row["経度"],
-            "総合スコア": score,
-            "ユーザーからの距離": round(row["distance_user"], 1),
-            "最寄り産科": nearest_ob,
-            "産科までの距離": round(dist_ob, 1),
-            "最寄り小児科": nearest_pe,
-            "小児科までの距離": round(dist_pe, 1),
-            "最寄り救急科": nearest_er,
-            "救急科までの距離": round(dist_er, 1),
-        })
+    with ProcessPoolExecutor(max_workers=max_workers) as executor:
+        futures = [
+            executor.submit(process_shelter, row._asdict(), medical, w)
+            for row in top3.itertuples()
+        ]
+        for f in as_completed(futures):
+            results.append(f.result())
 
     return results
