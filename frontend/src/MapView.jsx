@@ -47,8 +47,12 @@ export default function MapView() {
   const dueDate = localStorage.getItem("dueDate");
   const childCount = localStorage.getItem("childCount");
 
-  const userLat = storedLat || 35.6895;
-  const userLon = storedLon || 139.6917;
+  //const userLat = storedLat || 35.6895;
+  //const userLon = storedLon || 139.6917;
+  // テスト用に板橋文化会館を指定
+  const userLat = 35.7515;
+  const userLon = 139.7090;
+
 
   // 妊娠週数計算
   const calcWeeks = () => {
