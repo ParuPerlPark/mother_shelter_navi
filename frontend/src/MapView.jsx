@@ -25,12 +25,33 @@ const UserIcon = L.icon({
   iconAnchor: [12, 41],
 });
 
+// ★ 番号入りピンを作る関数（1,2,3）
+const createRankIcon = (rank) => {
+  const color = rank === 1 ? "#ff4d4d" : rank === 2 ? "#ff7f50" : "#ffa500";
+
+  const svg = `
+    <svg xmlns="http://www.w3.org/2000/svg" width="30" height="45">
+      <path d="M15 0C9 0 4 5 4 11c0 9 11 22 11 22s11-13 11-22C26 5 21 0 15 0z"
+            fill="${color}" stroke="#333" stroke-width="1"/>
+      <text x="15" y="17" text-anchor="middle"
+            font-size="14" font-weight="bold" fill="white">${rank}</text>
+    </svg>
+  `;
+
+  return L.icon({
+    iconUrl: "data:image/svg+xml;base64," + btoa(svg),
+    iconSize: [30, 45],
+    iconAnchor: [15, 45],
+    popupAnchor: [0, -40],
+  });
+};
+
 export default function MapView() {
   const [shelters, setShelters] = useState([]);
-  const [showConfirm, setShowConfirm] = useState(false); // ★ 登録確認ポップアップ
-  const [showModal, setShowModal] = useState(false); // ★ 保存名入力モーダル
-  const [saveName, setSaveName] = useState(""); // ★ 保存名
-  const [top3, setTop3] = useState([]); // ★ 避難所トップ3
+  const [showConfirm, setShowConfirm] = useState(false);
+  const [showModal, setShowModal] = useState(false);
+  const [saveName, setSaveName] = useState("");
+  const [top3, setTop3] = useState([]);
 
   const storedLat = parseFloat(localStorage.getItem("userLat"));
   const storedLon = parseFloat(localStorage.getItem("userLon"));
@@ -47,12 +68,9 @@ export default function MapView() {
   const dueDate = localStorage.getItem("dueDate");
   const childCount = localStorage.getItem("childCount");
 
-  //const userLat = storedLat || 35.6895;
-  //const userLon = storedLon || 139.6917;
-  // テスト用に板橋文化会館を指定
+  // ★ 現在地は固定
   const userLat = 35.7515;
   const userLon = 139.7090;
-
 
   // 妊娠週数計算
   const calcWeeks = () => {
@@ -87,32 +105,32 @@ export default function MapView() {
     displayStages.push(`子育て中（${childCount}人）`);
   }
 
-  // ★ API 取得
+  // ★ API 取得（weeks を Python に渡す）
   useEffect(() => {
+    const payload = {
+      pregnant: lifeStageRaw.includes("pregnant"),
+      childcare: lifeStageRaw.includes("childcare"),
+      weeks: weeks,
+    };
+
     fetch(
       `http://localhost:8000/recommend?lat=${userLat}&lon=${userLon}&life_stage=${encodeURIComponent(
-        JSON.stringify(lifeStageRaw)
+        JSON.stringify(payload)
       )}`
     )
       .then((res) => res.json())
       .then((data) => {
         setShelters(data.results);
 
-        // ★ トップ3を保存候補として保持
-        const top = data.results.slice(0, 3).map((s) => ({
-          name: s.避難所名,
-          lat: s.lat,
-          lon: s.lon,
-          距離: s.距離,
-          最寄り産科: s.最寄り産科,
-          産科までの距離: s.産科までの距離,
-          最寄り小児科: s.最寄り小児科,
-          小児科までの距離: s.小児科までの距離,
+        // ★ トップ3に rank を付ける
+        const top = data.results.slice(0, 3).map((s, i) => ({
+          ...s,
+          rank: i + 1,
         }));
         setTop3(top);
       })
       .catch((err) => console.error("API取得エラー:", err));
-  }, [userLat, userLon, lifeStageRaw]);
+  }, [userLat, userLon, lifeStageRaw, weeks]);
 
   // ★ 保存処理
   const saveShelterSet = () => {
@@ -189,133 +207,6 @@ export default function MapView() {
         </a>
       </div>
 
-      {/* ★ 避難所登録ボタン */}
-      <button
-        onClick={() => setShowConfirm(true)}
-        style={{
-          position: "absolute",
-          top: "70px",
-          left: "10px",
-          zIndex: 1000,
-          backgroundColor: "#f48fb1",
-          color: "white",
-          padding: "10px 16px",
-          borderRadius: "12px",
-          border: "none",
-          cursor: "pointer",
-          fontWeight: "600",
-        }}
-      >
-        現在地の避難所トップ3を登録
-      </button>
-
-      {/* ★ 登録確認ポップアップ */}
-      {showConfirm && (
-        <div
-          style={{
-            position: "absolute",
-            top: "120px",
-            left: "10px",
-            backgroundColor: "white",
-            padding: "20px",
-            borderRadius: "12px",
-            boxShadow: "0 4px 12px rgba(0,0,0,0.2)",
-            zIndex: 2000,
-          }}
-        >
-          <p>現在地から近い避難所トップ3を登録しますか？</p>
-          <button
-            onClick={() => {
-              setShowConfirm(false);
-              setShowModal(true);
-            }}
-            style={{
-              backgroundColor: "#f48fb1",
-              color: "white",
-              padding: "8px 12px",
-              borderRadius: "8px",
-              border: "none",
-              cursor: "pointer",
-              marginRight: "10px",
-            }}
-          >
-            はい
-          </button>
-          <button
-            onClick={() => setShowConfirm(false)}
-            style={{
-              backgroundColor: "#ccc",
-              padding: "8px 12px",
-              borderRadius: "8px",
-              border: "none",
-              cursor: "pointer",
-            }}
-          >
-            いいえ
-          </button>
-        </div>
-      )}
-
-      {/* ★ 保存名入力モーダル */}
-      {showModal && (
-        <div
-          style={{
-            position: "absolute",
-            top: "180px",
-            left: "10px",
-            backgroundColor: "white",
-            padding: "20px",
-            borderRadius: "12px",
-            boxShadow: "0 4px 12px rgba(0,0,0,0.2)",
-            zIndex: 2000,
-            width: "300px",
-          }}
-        >
-          <p>保存名（例：自宅・職場・実家）</p>
-          <input
-            type="text"
-            value={saveName}
-            onChange={(e) => setSaveName(e.target.value)}
-            placeholder="保存名を入力"
-            style={{
-              width: "100%",
-              padding: "8px",
-              borderRadius: "8px",
-              border: "1px solid #ccc",
-              marginBottom: "10px",
-            }}
-          />
-
-          <button
-            onClick={saveShelterSet}
-            style={{
-              backgroundColor: "#f48fb1",
-              color: "white",
-              padding: "8px 12px",
-              borderRadius: "8px",
-              border: "none",
-              cursor: "pointer",
-              marginRight: "10px",
-            }}
-          >
-            保存
-          </button>
-
-          <button
-            onClick={() => setShowModal(false)}
-            style={{
-              backgroundColor: "#ccc",
-              padding: "8px 12px",
-              borderRadius: "8px",
-              border: "none",
-              cursor: "pointer",
-            }}
-          >
-            キャンセル
-          </button>
-        </div>
-      )}
-
       {/* ★ 地図 */}
       <MapContainer
         center={[userLat, userLon]}
@@ -324,20 +215,37 @@ export default function MapView() {
       >
         <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
 
+        {/* ★ 現在地（赤ピン） */}
         <Marker position={[userLat, userLon]} icon={UserIcon}>
           <Popup>あなたの位置</Popup>
         </Marker>
 
-        {shelters.map((s, i) => (
-          <Marker key={i} position={[s.lat, s.lon]}>
+        {/* ★ トップ3は番号入りピン */}
+        {top3.map((s, i) => (
+          <Marker key={`top-${i}`} position={[s.lat, s.lon]} icon={createRankIcon(s.rank)}>
             <Popup>
-              {s.避難所名}
+              <b>{s.rank}位: {s.避難所名}</b>
               <br />
               スコア: {s.総合スコア.toFixed(4)}
               <br />
               産婦人科: {s.最寄り産科}（{s.産科までの距離}m）
               <br />
               小児科: {s.最寄り小児科}（{s.小児科までの距離}m）
+              <br />
+              <b>設備: {s.設備あり ? "あり" : "なし"}</b>
+            </Popup>
+          </Marker>
+        ))}
+
+        {/* ★ その他の避難所は青ピン */}
+        {shelters.slice(3).map((s, i) => (
+          <Marker key={`other-${i}`} position={[s.lat, s.lon]}>
+            <Popup>
+              {s.避難所名}
+              <br />
+              スコア: {s.総合スコア.toFixed(4)}
+              <br />
+              <b>設備: {s.設備あり ? "あり" : "なし"}</b>
             </Popup>
           </Marker>
         ))}
