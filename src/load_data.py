@@ -104,3 +104,11 @@ def load_medical_facilities():
         (df["has_pediatrics"]) |
         (df["has_emergency"])
     ].copy()
+
+# ------------------------------------------------------------
+# 板橋区の避難所別災害備蓄情報
+# ------------------------------------------------------------
+def load_stock():
+    df = pd.read_csv("data/itabashi_bihin.csv")
+    df.columns = df.columns.str.replace(r"\s+", "", regex=True)
+    return df
