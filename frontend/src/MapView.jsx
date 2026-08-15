@@ -61,19 +61,27 @@ export default function MapView() {
   const [shelters, setShelters] = useState([]);
   const [top3, setTop3] = useState([]);
 
-  // lifeStage は配列 or 文字列の両方に対応
+  // ★ lifeStage の安全な読み取り
   let raw = localStorage.getItem("lifeStage");
-  let lifeStageRaw;
+  let lifeStageRaw = [];
+
   try {
-    lifeStageRaw = JSON.parse(raw);
+    const parsed = JSON.parse(raw);
+    if (Array.isArray(parsed)) {
+      lifeStageRaw = parsed;
+    }
   } catch {
-    lifeStageRaw = raw ? [raw] : [];
+    lifeStageRaw = [];
   }
 
   const dueDate = localStorage.getItem("dueDate");
   const childCount = localStorage.getItem("childCount");
 
-  // 現在地（固定）
+  // 現在地（保存値 or 板橋固定）
+  //const userLat = Number(localStorage.getItem("userLat")) || 35.7515;
+  //const userLon = Number(localStorage.getItem("userLon")) || 139.7090;
+
+  // ★ テスト用：板橋区立文化会館を現在地に固定
   const userLat = 35.7515;
   const userLon = 139.7090;
 
@@ -139,6 +147,46 @@ export default function MapView() {
 
   return (
     <>
+      {/* ★ ライフステージ＋設定ボタン */}
+      <div
+        style={{
+          position: "absolute",
+          top: "10px",
+          left: "10px",
+          backgroundColor: "#ffe4ec",
+          padding: "10px 20px",
+          borderRadius: "20px",
+          boxShadow: "0 2px 6px rgba(0,0,0,0.15)",
+          zIndex: 1000,
+          fontFamily: "'Noto Sans JP', sans-serif",
+          color: "#d96c9f",
+          fontWeight: "600",
+          display: "flex",
+          alignItems: "center",
+          gap: "12px",
+        }}
+      >
+        <span>
+          現在のライフステージ：
+          {displayStages.length > 0 ? displayStages.join("・") : "未設定"}
+        </span>
+
+        <a
+          href="/settings"
+          style={{
+            backgroundColor: "#f8c8dc",
+            padding: "6px 12px",
+            borderRadius: "12px",
+            color: "#333",
+            textDecoration: "none",
+            fontWeight: "500",
+            boxShadow: "0 2px 6px rgba(0,0,0,0.15)",
+          }}
+        >
+          ⚙ 設定
+        </a>
+      </div>
+
       <MapContainer
         center={[userLat, userLon]}
         zoom={15}
@@ -167,12 +215,31 @@ export default function MapView() {
               <br />
               小児科まで: {s.distance_pe}m
               <br />
-              <br />
               ミルク：{s.milk ? "あり" : "情報なし"}
               <br />
               おむつ：{s.diaper ? "あり" : "情報なし"}
               <br />
               設備：{s.equipment ? "あり" : "情報なし"}
+              <br /><br />
+
+              {/* ★ 案内開始ボタン（Googleマップで経路案内） */}
+              <a
+                href={`https://www.google.com/maps/dir/?api=1&origin=${userLat},${userLon}&destination=${s.lat},${s.lon}&travelmode=walking`}
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{
+                  display: "inline-block",
+                  marginTop: "8px",
+                  padding: "8px 14px",
+                  backgroundColor: "#f48fb1",
+                  color: "white",
+                  borderRadius: "8px",
+                  textDecoration: "none",
+                  fontWeight: "600",
+                }}
+              >
+                🚶‍♀️ 案内開始
+              </a>
             </Popup>
           </Marker>
         ))}
@@ -195,6 +262,26 @@ export default function MapView() {
               おむつ：{s.diaper ? "あり" : "情報なし"}
               <br />
               設備：{s.equipment ? "あり" : "情報なし"}
+              <br /><br />
+
+              {/* ★ その他の避難所にも案内開始ボタンを付ける */}
+              <a
+                href={`https://www.google.com/maps/dir/?api=1&origin=${userLat},${userLon}&destination=${s.lat},${s.lon}&travelmode=walking`}
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{
+                  display: "inline-block",
+                  marginTop: "8px",
+                  padding: "8px 14px",
+                  backgroundColor: "#f48fb1",
+                  color: "white",
+                  borderRadius: "8px",
+                  textDecoration: "none",
+                  fontWeight: "600",
+                }}
+              >
+                🚶‍♀️ 案内開始
+              </a>
             </Popup>
           </Marker>
         ))}

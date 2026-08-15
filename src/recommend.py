@@ -68,8 +68,6 @@ def process_shelter(row_dict, medical, w, milk_map, diaper_map):
     milk_flag = milk_map.get(name, False)
     diaper_flag = diaper_map.get(name, False)
 
-    #print(f"\n=== process_shelter デバッグ ===\n避難所名: {name}\nミルク: {milk_flag}\nおむつ: {diaper_flag}")
-
     equipment_col = next((col for col in row_dict.keys() if "その他" in col), None)
     equipment_text = row_dict.get(equipment_col, "")
     equipment_flag = has_equipment(equipment_text)
@@ -88,7 +86,7 @@ def process_shelter(row_dict, medical, w, milk_map, diaper_map):
     def pick(flag):
         df = medical_city[medical_city[flag]]
         if len(df) == 0:
-            return None, 99999.0
+            return None, 999999.0
         best = df.sort_values("dist").iloc[0]
         return best["正式名称"], best["dist"]
 
@@ -96,7 +94,10 @@ def process_shelter(row_dict, medical, w, milk_map, diaper_map):
     pe, dist_pe = pick("has_pediatrics")
     er, dist_er = pick("has_emergency")
 
-    distance_score = 1 / (row_dict["distance_user"] + 1)
+    # ★ 距離スコア（近距離を強調）
+    distance_m = row_dict["distance_user"]
+    distance_score = 1 / ((distance_m / 100) + 1)
+
     medical_score = 0.0
     if w["use_ob"]:
         medical_score += 1 / (dist_ob + 1)
@@ -136,9 +137,6 @@ def recommend_shelter(user_lat, user_lon, life_stage_raw):
     shelters["避難所名"] = shelters["避難所名"].astype(str).str.strip().str.replace(" ", "")
     stock["避難所名"] = stock["避難所名"].astype(str).str.strip().str.replace(" ", "")
 
-    #print("\n=== デバッグ: stock 避難所名一覧 ===")
-    #print(stock["避難所名"].unique()[:50])
-
     milk_map, diaper_map = {}, {}
     for name, group in stock.groupby("避難所名"):
         items = " ".join(group["品名"].astype(str))
@@ -157,6 +155,7 @@ def recommend_shelter(user_lat, user_lon, life_stage_raw):
     if len(nearby) == 0:
         nearby = shelters.sort_values("distance_user").head(10)
 
+    # ★ ライフステージ別の重み（あなたの設計思想を維持）
     if life_stage in ["妊娠初期"]:
         eq_w = 0.2
     elif life_stage in ["妊娠中期"]:
@@ -171,24 +170,25 @@ def recommend_shelter(user_lat, user_lon, life_stage_raw):
         eq_w = 0.3
 
     w = {
-        "distance_weight": 0.5,
-        "medical_weight": 0.5,
-        "equipment_weight": eq_w,
-        "milk_weight": 0.4,
-        "diaper_weight": 0.4,
+        "distance_weight": 0.8,   # ★ 距離は全ステージで重要
+        "medical_weight": 0.4,    # ★ 医療は妊娠中で重要
+        "equipment_weight": eq_w, # ★ 設備は産後・育児中で重要
+        "milk_weight": 0.2,       # ★ ミルク・おむつは産後で重要
+        "diaper_weight": 0.2,
         "use_ob": "妊娠" in life_stage,
         "use_pe": "育児" in life_stage or life_stage == "産後",
         "er_weight": 0.2,
     }
 
-    top3 = nearby.sort_values("distance_user").head(3)
     results = []
     with ProcessPoolExecutor(max_workers=os.cpu_count() * 2) as executor:
         futures = [
             executor.submit(process_shelter, row._asdict(), medical, w, milk_map, diaper_map)
-            for row in top3.itertuples()
+            for row in nearby.itertuples()
         ]
         for f in as_completed(futures):
             results.append(f.result())
+
+    results = sorted(results, key=lambda x: x["score"], reverse=True)[:3]
 
     return results
