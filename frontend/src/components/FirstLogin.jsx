@@ -1,7 +1,5 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-
-// ★ ロゴを正しく読み込む（components → assets）
 import logo from "../assets/logo.png";
 
 function FirstLogin() {
@@ -11,18 +9,23 @@ function FirstLogin() {
   const [dueDate, setDueDate] = useState("");
   const [childCount, setChildCount] = useState("");
   const [location, setLocation] = useState({ lat: null, lng: null });
+  const [loading, setLoading] = useState(false);
 
-  // 既存ユーザーの復元
+  // 既存ユーザーの復元（デモ時は無視してOK）
   useEffect(() => {
     const userId = localStorage.getItem("userId");
     if (!userId) return;
 
     const fetchUser = async () => {
-      const res = await fetch(
-        `https://mother-shelter-api.tokyo-odh-247.workers.dev/api/user/${userId}`
-      );
-      const data = await res.json();
-      console.log("復元されたユーザー情報:", data);
+      try {
+        const res = await fetch(
+          `https://mother-shelter-api.tokyo-odh-247.workers.dev/api/user/${userId}`
+        );
+        const data = await res.json();
+        console.log("復元されたユーザー情報:", data);
+      } catch (err) {
+        console.error("復元エラー:", err);
+      }
     };
 
     fetchUser();
@@ -45,39 +48,80 @@ function FirstLogin() {
 
   // 現在地取得
   const getLocation = () => {
-    navigator.geolocation.getCurrentPosition((pos) => {
-      setLocation({
-        lat: pos.coords.latitude,
-        lng: pos.coords.longitude,
-      });
-    });
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        setLocation({
+          lat: pos.coords.latitude,
+          lng: pos.coords.longitude,
+        });
+      },
+      (err) => {
+        alert("位置情報の取得に失敗しました。ブラウザの設定を確認してください。");
+        console.error(err);
+      }
+    );
   };
 
   // 保存処理
   const saveUser = async () => {
-    const payload = { lifeStage, dueDate, childCount, location };
+    if (loading) return;
+    setLoading(true);
 
-    const res = await fetch(
-      "https://mother-shelter-api.tokyo-odh-247.workers.dev/api/user",
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
+    try {
+      if (!lifeStage.length) {
+        alert("ライフステージを選択してください。");
+        setLoading(false);
+        return;
       }
-    );
 
-    const { userId } = await res.json();
+      if (!location.lat || !location.lng) {
+        alert("現在地を取得してください。");
+        setLoading(false);
+        return;
+      }
 
-    // localStorage 保存
-    localStorage.setItem("userId", userId);
-    localStorage.setItem("lifeStage", JSON.stringify(lifeStage));
-    localStorage.setItem("dueDate", dueDate);
-    localStorage.setItem("childCount", childCount);
-    localStorage.setItem("userLat", location.lat);
-    localStorage.setItem("userLon", location.lng);
+      const payload = { lifeStage, dueDate, childCount, location };
 
-    alert("保存しました！");
-    navigate("/home");
+      const res = await fetch(
+        "https://mother-shelter-api.tokyo-odh-247.workers.dev/api/user",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        }
+      );
+
+      if (!res.ok) {
+        alert("サーバーエラーが発生しました。もう一度お試しください。");
+        setLoading(false);
+        return;
+      }
+
+      const data = await res.json();
+      const userId = data.userId;
+
+      if (!userId) {
+        alert("ユーザー登録に失敗しました。もう一度お試しください。");
+        setLoading(false);
+        return;
+      }
+
+      // 保存完了後に遷移
+      localStorage.setItem("userId", userId);
+      localStorage.setItem("lifeStage", JSON.stringify(lifeStage));
+      localStorage.setItem("dueDate", dueDate);
+      localStorage.setItem("childCount", childCount);
+      localStorage.setItem("userLat", location.lat);
+      localStorage.setItem("userLon", location.lng);
+
+      alert("保存しました！");
+      navigate("/home");
+    } catch (error) {
+      console.error("保存エラー:", error);
+      alert("通信エラーが発生しました。ネットワークを確認してください。");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -93,7 +137,6 @@ function FirstLogin() {
         textAlign: "center",
       }}
     >
-      {/* ★ ロゴを中央に表示 */}
       <img
         src={logo}
         alt="Boshevi ロゴ"
@@ -118,7 +161,6 @@ function FirstLogin() {
         母子避難ナビ 初回設定
       </h2>
 
-      {/* ライフステージ */}
       <label style={{ color: "#555", fontWeight: "500" }}>
         ライフステージ：
       </label>
@@ -143,7 +185,6 @@ function FirstLogin() {
         </label>
       </div>
 
-      {/* 妊娠中の入力欄 */}
       {lifeStage.includes("pregnant") && (
         <>
           <label style={{ color: "#555", fontWeight: "500" }}>出産予定日：</label>
@@ -164,7 +205,6 @@ function FirstLogin() {
         </>
       )}
 
-      {/* 育児中の入力欄 */}
       {lifeStage.includes("childcare") && (
         <>
           <label style={{ color: "#555", fontWeight: "500" }}>子どもの人数：</label>
@@ -187,7 +227,6 @@ function FirstLogin() {
         </>
       )}
 
-      {/* 現在地 */}
       <button
         onClick={getLocation}
         style={{
@@ -212,21 +251,21 @@ function FirstLogin() {
 
       <br /><br />
 
-      {/* 保存ボタン */}
       <button
         onClick={saveUser}
+        disabled={loading}
         style={{
-          backgroundColor: "#f48fb1",
+          backgroundColor: loading ? "#f8c8dc" : "#f48fb1",
           color: "white",
           border: "none",
           padding: "10px 18px",
           borderRadius: "8px",
-          cursor: "pointer",
+          cursor: loading ? "not-allowed" : "pointer",
           fontWeight: "500",
           width: "100%",
         }}
       >
-        保存してはじめる
+        {loading ? "保存中..." : "保存してはじめる"}
       </button>
     </div>
   );
