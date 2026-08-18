@@ -22,14 +22,25 @@ export default function Settings() {
     lng: localStorage.getItem("userLon"),
   });
 
-  // 保存済み避難所
-  const [savedShelters, setSavedShelters] = useState(
-    JSON.parse(localStorage.getItem("savedShelters") || "[]")
-  );
+  // 保存済み避難所（安全に読み込む）
+  const [savedShelters, setSavedShelters] = useState([]);
 
-  const [openIndex, setOpenIndex] = useState(null); // アコーディオン（避難所・備蓄共通）
-  const [openShelterIndex, setOpenShelterIndex] = useState(null); // 避難所詳細
-  const [openStock, setOpenStock] = useState(false); // 備蓄状況アコーディオン
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem("savedShelters");
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed)) {
+        setSavedShelters(parsed);
+      } else {
+        setSavedShelters([]);
+      }
+    } catch {
+      setSavedShelters([]);
+    }
+  }, []);
+
+  const [openIndex, setOpenIndex] = useState(null);
+  const [openStock, setOpenStock] = useState(false);
 
   // ★ 大項目（固定）＋小項目（追加可能）
   const defaultStockGroups = [
@@ -75,7 +86,6 @@ export default function Settings() {
     },
   ];
 
-  // localStorage に保存されていれば読み込む
   const [stockGroups, setStockGroups] = useState(
     JSON.parse(localStorage.getItem("stockGroups") || "null") || defaultStockGroups
   );
@@ -108,8 +118,6 @@ export default function Settings() {
     localStorage.setItem("childCount", childCount);
     localStorage.setItem("userLat", location.lat);
     localStorage.setItem("userLon", location.lng);
-
-    // 備蓄状況保存
     localStorage.setItem("stockGroups", JSON.stringify(stockGroups));
 
     alert("設定を保存しました");
@@ -120,15 +128,6 @@ export default function Settings() {
     const updated = savedShelters.filter((_, i) => i !== index);
     setSavedShelters(updated);
     localStorage.setItem("savedShelters", JSON.stringify(updated));
-  };
-
-  const toggleAccordion = (index) => {
-    setOpenIndex(openIndex === index ? null : index);
-    setOpenShelterIndex(null);
-  };
-
-  const toggleShelterDetail = (index) => {
-    setOpenShelterIndex(openShelterIndex === index ? null : index);
   };
 
   const goBack = () => navigate("/home");
@@ -238,104 +237,61 @@ export default function Settings() {
               padding: "10px",
             }}
           >
-            <div
-              style={{
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "center",
-              }}
-            >
-              <strong>{item.name}</strong>
-              <button
-                onClick={() => toggleAccordion(idx)}
-                style={{
-                  backgroundColor: "#f8c8dc",
-                  border: "none",
-                  borderRadius: "8px",
-                  padding: "6px 12px",
-                  cursor: "pointer",
-                }}
-              >
-                {openIndex === idx ? "閉じる" : "詳細"}
-              </button>
-            </div>
+            <strong>{item.name}</strong>
+            <p style={{ margin: "6px 0" }}>
+              緯度: {item.lat}
+              <br />
+              経度: {item.lon}
+            </p>
 
-            {openIndex === idx && (
-              <div style={{ marginTop: "10px" }}>
-                {item.shelters.map((shelter, i) => (
-                  <div key={i} style={{ marginBottom: "8px" }}>
-                    <div
-                      style={{
-                        display: "flex",
-                        justifyContent: "space-between",
-                        alignItems: "center",
-                      }}
-                    >
-                      <span>
-                        ・{shelter.name}
-                        {shelter.距離 && `（${shelter.距離}m）`}
-                      </span>
-                      <button
-                        onClick={() => toggleShelterDetail(i)}
+            {/* ★ Top3避難所名＋案内開始ボタン */}
+            {item.topShelters && item.topShelters.length > 0 && (
+              <div style={{ marginTop: "8px" }}>
+                <p style={{ fontWeight: "600", color: "#d96c9f" }}>おすすめ避難所Top3</p>
+                <ul style={{ margin: "4px 0 0 16px", color: "#333" }}>
+                  {item.topShelters.map((s, i) => (
+                    <li key={i} style={{ marginBottom: "6px" }}>
+                      {s}
+                      <a
+                        href={`https://www.google.com/maps/dir/?api=1&origin=${item.lat},${item.lon}&destination=${encodeURIComponent(
+                          s
+                        )}&travelmode=walking`}
+                        target="_blank"
+                        rel="noopener noreferrer"
                         style={{
                           marginLeft: "10px",
                           backgroundColor: "#f48fb1",
                           color: "white",
-                          border: "none",
                           borderRadius: "6px",
                           padding: "4px 8px",
-                          cursor: "pointer",
+                          textDecoration: "none",
+                          fontSize: "12px",
                         }}
                       >
-                        {openShelterIndex === i ? "閉じる" : "詳細"}
-                      </button>
-                    </div>
-
-                    {openShelterIndex === i && (
-                      <div
-                        style={{
-                          marginTop: "6px",
-                          marginLeft: "16px",
-                          backgroundColor: "#fff7fa",
-                          borderRadius: "8px",
-                          padding: "8px",
-                          border: "1px solid #f8c8dc",
-                        }}
-                      >
-                        <p style={{ margin: "4px 0" }}>
-                          緯度: {shelter.lat}
-                          <br />
-                          経度: {shelter.lon}
-                          <br />
-                          産婦人科: {shelter.最寄り産科}（{shelter.産科までの距離}m）
-                          <br />
-                          小児科: {shelter.最寄り小児科}（{shelter.小児科までの距離}m）
-                          <br />
-                        </p>
-                      </div>
-                    )}
-                  </div>
-                ))}
-
-                <button
-                  onClick={() => deleteSavedShelter(idx)}
-                  style={{
-                    backgroundColor: "#f48fb1",
-                    color: "white",
-                    border: "none",
-                    padding: "6px 12px",
-                    borderRadius: "8px",
-                    cursor: "pointer",
-                    marginTop: "10px",
-                  }}
-                >
-                  削除
-                </button>
+                        🚶‍♀️ 案内開始
+                      </a>
+                    </li>
+                  ))}
+                </ul>
               </div>
             )}
+
+            <button
+              onClick={() => deleteSavedShelter(idx)}
+              style={{
+                backgroundColor: "#f48fb1",
+                color: "white",
+                border: "none",
+                padding: "6px 12px",
+                borderRadius: "8px",
+                cursor: "pointer",
+                marginTop: "10px",
+              }}
+            >
+              削除
+            </button>
           </div>
         ))}
-
         <br />
 
         {/* 備蓄状況 */}
@@ -468,7 +424,6 @@ export default function Settings() {
                             />
                           </div>
 
-                          {/* ★ 小項目削除ボタン */}
                           <button
                             onClick={() => {
                               const updatedItems = group.items.filter((x) => x.key !== item.key);
@@ -479,7 +434,6 @@ export default function Settings() {
                               setStockGroups(updatedGroups);
                               localStorage.setItem("stockGroups", JSON.stringify(updatedGroups));
 
-                              // localStorage の個別データも削除
                               localStorage.removeItem(item.key);
                               localStorage.removeItem(`${item.key}_count`);
                               localStorage.removeItem(`${item.key}_date`);
@@ -498,7 +452,6 @@ export default function Settings() {
                         </div>
                       ))}
 
-                      {/* ★ 項目追加 */}
                       <button
                         onClick={() => {
                           const name = prompt("追加する項目名を入力してください");
@@ -565,7 +518,7 @@ export default function Settings() {
             marginBottom: "10px",
           }}
         >
-           保存して戻る
+          保存して戻る
         </button>
 
         <button

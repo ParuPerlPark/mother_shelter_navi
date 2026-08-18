@@ -6,3 +6,5 @@ folium
 fastapi
 recommend
 uvicorn[standard]
+boto3
+python-dotenv

@@ -30,3 +30,9 @@ src/.DS_Store
 
 # IDE
 .vscode/
+
+# env
+.env
+
+# local test code
+.\src\load_data_local.py

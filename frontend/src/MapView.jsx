@@ -25,7 +25,7 @@ const UserIcon = L.icon({
   iconAnchor: [12, 41],
 });
 
-// ★ 番号入りピン＋アイコン群（ピン真下・アイコン密着）
+// ★ 番号入りピン＋アイコン群
 const createRankIconWithPng = (rank, equipment, milk, diaper) => {
   const color = rank === 1 ? "#ff4d4d" : rank === 2 ? "#ff7f50" : "#ffa500";
 
@@ -60,8 +60,9 @@ const createRankIconWithPng = (rank, equipment, milk, diaper) => {
 export default function MapView() {
   const [shelters, setShelters] = useState([]);
   const [top3, setTop3] = useState([]);
+  const [savedShelters, setSavedShelters] = useState([]);
 
-  // ★ lifeStage の安全な読み取り
+  // lifeStage の安全な読み取り
   let raw = localStorage.getItem("lifeStage");
   let lifeStageRaw = [];
 
@@ -76,10 +77,6 @@ export default function MapView() {
 
   const dueDate = localStorage.getItem("dueDate");
   const childCount = localStorage.getItem("childCount");
-
-  // 現在地（保存値 or 板橋固定）
-  //const userLat = Number(localStorage.getItem("userLat")) || 35.7515;
-  //const userLon = Number(localStorage.getItem("userLon")) || 139.7090;
 
   // ★ テスト用：板橋区立文化会館を現在地に固定
   const userLat = 35.7515;
@@ -118,6 +115,12 @@ export default function MapView() {
     displayStages.push(`子育て中（${childCount}人）`);
   }
 
+  // 登録済み避難所読み込み
+  useEffect(() => {
+    const saved = JSON.parse(localStorage.getItem("savedShelters") || "[]");
+    setSavedShelters(saved);
+  }, []);
+
   // API取得
   useEffect(() => {
     const payload = {
@@ -147,12 +150,12 @@ export default function MapView() {
 
   return (
     <>
-      {/* ★ ライフステージ＋設定ボタン */}
+      {/* ★ 左上 UI */}
       <div
         style={{
           position: "absolute",
           top: "10px",
-          left: "10px",
+          left: "60px", // ← 右に寄せてズームボタンと重ならないように
           backgroundColor: "#ffe4ec",
           padding: "10px 20px",
           borderRadius: "20px",
@@ -162,6 +165,7 @@ export default function MapView() {
           color: "#d96c9f",
           fontWeight: "600",
           display: "flex",
+          flexDirection: "row",
           alignItems: "center",
           gap: "12px",
         }}
@@ -171,6 +175,7 @@ export default function MapView() {
           {displayStages.length > 0 ? displayStages.join("・") : "未設定"}
         </span>
 
+        {/* 設定ボタン */}
         <a
           href="/settings"
           style={{
@@ -185,6 +190,42 @@ export default function MapView() {
         >
           ⚙ 設定
         </a>
+
+        {/* 避難所登録ボタン */}
+        <button
+          onClick={() => {
+            const name = prompt("登録名を入力してください（例：自宅、職場など）");
+            if (!name) return;
+
+            const saved = JSON.parse(localStorage.getItem("savedShelters") || "[]");
+            const topNames = top3.map((s) => s.name); // ★ Top3避難所名を取得
+
+            saved.push({
+              name,
+              lat: userLat,
+              lon: userLon,
+              topShelters: topNames, // ★ Top3を保存
+            });
+
+            localStorage.setItem("savedShelters", JSON.stringify(saved));
+            setSavedShelters(saved);
+
+            alert(`「${name}」を登録しました`);
+          }}
+          style={{
+            backgroundColor: "#f8c8dc",
+            padding: "6px 12px",
+            borderRadius: "12px",
+            color: "#333",
+            fontWeight: "500",
+            boxShadow: "0 2px 6px rgba(0,0,0,0.15)",
+            border: "none",
+            cursor: "pointer",
+          }}
+        >
+          📍 避難所を登録
+        </button>
+
       </div>
 
       <MapContainer
@@ -198,6 +239,33 @@ export default function MapView() {
         <Marker position={[userLat, userLon]} icon={UserIcon}>
           <Popup>あなたの位置</Popup>
         </Marker>
+
+        {/* ★ 登録済み避難所 */}
+        {savedShelters.map((s, i) => (
+          <Marker key={`saved-${i}`} position={[s.lat, s.lon]} icon={DefaultIcon}>
+            <Popup>
+              <b>登録名：{s.name}</b>
+              <br />
+              <a
+                href={`https://www.google.com/maps/dir/?api=1&origin=${userLat},${userLon}&destination=${s.lat},${s.lon}&travelmode=walking`}
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{
+                  display: "inline-block",
+                  marginTop: "8px",
+                  padding: "8px 14px",
+                  backgroundColor: "#f48fb1",
+                  color: "white",
+                  borderRadius: "8px",
+                  textDecoration: "none",
+                  fontWeight: "600",
+                }}
+              >
+                🚶‍♀️ 案内開始
+              </a>
+            </Popup>
+          </Marker>
+        ))}
 
         {/* トップ3 */}
         {top3.map((s, i) => (
@@ -222,7 +290,6 @@ export default function MapView() {
               設備：{s.equipment ? "あり" : "情報なし"}
               <br /><br />
 
-              {/* ★ 案内開始ボタン（Googleマップで経路案内） */}
               <a
                 href={`https://www.google.com/maps/dir/?api=1&origin=${userLat},${userLon}&destination=${s.lat},${s.lon}&travelmode=walking`}
                 target="_blank"
@@ -244,7 +311,7 @@ export default function MapView() {
           </Marker>
         ))}
 
-        {/* その他 */}
+        {/* その他の避難所 */}
         {shelters.slice(3).map((s, i) => (
           <Marker
             key={`other-${i}`}
@@ -264,7 +331,6 @@ export default function MapView() {
               設備：{s.equipment ? "あり" : "情報なし"}
               <br /><br />
 
-              {/* ★ その他の避難所にも案内開始ボタンを付ける */}
               <a
                 href={`https://www.google.com/maps/dir/?api=1&origin=${userLat},${userLon}&destination=${s.lat},${s.lon}&travelmode=walking`}
                 target="_blank"
